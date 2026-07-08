@@ -1,0 +1,22 @@
+# Stack de déploiement TIWAP (app + MongoDB), utilisée par Coolify comme
+# "Service" (docker_compose_raw) pour chaque environnement (DEV/STAGING/PROD).
+# Contrairement à docker-compose.yml à la racine (qui build l'image en
+# local pour le développement), ce fichier consomme l'image déjà publiée
+# sur GHCR : c'est ce qui garantit Build Once, Deploy Many.
+#
+# Variables injectées par environnement Coolify :
+#   TIWAP_VERSION   - tag de l'image ghcr.io/kant1-18/tiwap à déployer
+#   TIWAP_HOST_PORT - port exposé sur l'hôte (5001=dev, 5002=staging, 5003=prod)
+services:
+  app:
+    image: ghcr.io/kant1-18/tiwap:${TIWAP_VERSION:-latest}
+    ports:
+      - "${TIWAP_HOST_PORT}:5000"
+    depends_on:
+      - db
+  db:
+    image: mongo:4.4
+    environment:
+      MONGO_INITDB_DATABASE: TIWAP
+      MONGO_INITDB_ROOT_USERNAME: username
+      MONGO_INITDB_ROOT_PASSWORD: password

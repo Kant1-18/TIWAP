@@ -22,9 +22,9 @@ jobs:
         run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
       - name: Fixer la version de l'image (Build Once, Deploy Many)
         run: |
-          curl -sf -X PATCH "${{ secrets.COOLIFY_URL }}/api/v1/applications/${{ secrets.COOLIFY_DEV_APP_UUID }}" \
+          curl -sf -X PATCH "${{ secrets.COOLIFY_URL }}/api/v1/services/${{ secrets.COOLIFY_DEV_APP_UUID }}/envs" \
                -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" -H "Content-Type: application/json" \
-               -d "{\"docker_registry_image_tag\":\"${{ steps.version.outputs.version }}\"}"
+               -d "{\"key\":\"TIWAP_VERSION\",\"value\":\"${{ steps.version.outputs.version }}\"}"
       - name: Déclencher le déploiement Coolify (tiwap-dev)
         run: |
           curl -sf -X GET "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_DEV_APP_UUID }}" \
@@ -47,9 +47,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fixer la version de l'image (Build Once, Deploy Many)
         run: |
-          curl -sf -X PATCH "${{ secrets.COOLIFY_URL }}/api/v1/applications/${{ secrets.COOLIFY_STAGING_APP_UUID }}" \
+          curl -sf -X PATCH "${{ secrets.COOLIFY_URL }}/api/v1/services/${{ secrets.COOLIFY_STAGING_APP_UUID }}/envs" \
                -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" -H "Content-Type: application/json" \
-               -d "{\"docker_registry_image_tag\":\"${{ needs.deploy-dev.outputs.version }}\"}"
+               -d "{\"key\":\"TIWAP_VERSION\",\"value\":\"${{ needs.deploy-dev.outputs.version }}\"}"
       - name: Déclencher le déploiement Coolify (tiwap-staging)
         run: |
           curl -sf -X GET "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_STAGING_APP_UUID }}" \
@@ -72,9 +72,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fixer la version de l'image (Build Once, Deploy Many)
         run: |
-          curl -sf -X PATCH "${{ secrets.COOLIFY_URL }}/api/v1/applications/${{ secrets.COOLIFY_PROD_APP_UUID }}" \
+          curl -sf -X PATCH "${{ secrets.COOLIFY_URL }}/api/v1/services/${{ secrets.COOLIFY_PROD_APP_UUID }}/envs" \
                -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" -H "Content-Type: application/json" \
-               -d "{\"docker_registry_image_tag\":\"${{ needs.deploy-dev.outputs.version }}\"}"
+               -d "{\"key\":\"TIWAP_VERSION\",\"value\":\"${{ needs.deploy-dev.outputs.version }}\"}"
       - name: Déclencher le déploiement Coolify (tiwap-prod)
         run: |
           curl -sf -X GET "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_PROD_APP_UUID }}" \

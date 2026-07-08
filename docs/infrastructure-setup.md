@@ -72,12 +72,24 @@ sudo docker compose --env-file /data/coolify/source/.env -f coolify/docker-compo
   (`orb create ubuntu coolify`) : OrbStack donne une IP LAN directement
   routable depuis le Mac (`orb list` pour la retrouver), pas besoin de port
   forwarding supplémentaire.
-- Créer trois applications (Docker Image) pointant sur
-  `ghcr.io/kant1-18/tiwap` : `tiwap-dev`, `tiwap-staging`, `tiwap-prod`.
-- Pour chacune, récupérer :
-  - l'UUID de l'application (visible dans son URL / ses paramètres) ;
-  - un token d'API (**Keys & Tokens → API tokens**) avec le droit de
-    déploiement.
+- TIWAP a besoin de MongoDB (voir `docker-compose.yml` à la racine du repo) :
+  une application Coolify de type **Docker Image** seule ne suffit pas, l'app
+  plante au démarrage (`db:27017: Name or service not known`). Créer plutôt
+  trois **Services** (Docker Compose personnalisé) à partir de
+  [`coolify/tiwap-stack.yml`](../coolify/tiwap-stack.yml) : `tiwap-dev`,
+  `tiwap-staging`, `tiwap-production` — chacun avec les variables
+  d'environnement `TIWAP_VERSION` (tag d'image à déployer) et
+  `TIWAP_HOST_PORT` (`5001`/`5002`/`5003`).
+- L'application sert en **HTTPS auto-signé** (`ssl_context` dans `app.py`,
+  pas de certificat valide) : les URLs de smoke test doivent utiliser
+  `https://`, pas `http://`, et `curl -k` (déjà géré par
+  `scripts/smoke_test.sh`).
+- Pour chaque service, récupérer l'UUID (visible dans son URL / ses
+  paramètres) et un token d'API (**Keys & Tokens → API tokens**) avec le
+  droit de déploiement.
+- Le déploiement Coolify est asynchrone : `scripts/smoke_test.sh` réessaie
+  pendant 2 minutes avant d'échouer, pour laisser le temps au conteneur de
+  démarrer.
 
 ## 4. Secrets et environnements GitHub à créer
 
@@ -88,12 +100,12 @@ sudo docker compose --env-file /data/coolify/source/.env -f coolify/docker-compo
 | `SONAR_TOKEN` | Token généré à l'étape 2 |
 | `COOLIFY_URL` | `http://<IP-VM>:8000` |
 | `COOLIFY_API_TOKEN` | Token d'API Coolify |
-| `COOLIFY_DEV_APP_UUID` | UUID de l'application `tiwap-dev` |
-| `COOLIFY_STAGING_APP_UUID` | UUID de l'application `tiwap-staging` |
-| `COOLIFY_PROD_APP_UUID` | UUID de l'application `tiwap-prod` |
-| `DEV_URL` | URL publique/LAN de `tiwap-dev` |
-| `STAGING_URL` | URL publique/LAN de `tiwap-staging` |
-| `PROD_URL` | URL publique/LAN de `tiwap-prod` |
+| `COOLIFY_DEV_APP_UUID` | UUID du service `tiwap-dev` |
+| `COOLIFY_STAGING_APP_UUID` | UUID du service `tiwap-staging` |
+| `COOLIFY_PROD_APP_UUID` | UUID du service `tiwap-production` |
+| `DEV_URL` | `https://<IP-VM>:5001` |
+| `STAGING_URL` | `https://<IP-VM>:5002` |
+| `PROD_URL` | `https://<IP-VM>:5003` |
 
 **Settings → Environments**, créer `development`, `staging` et `production`.
 Sur `production` uniquement, activer **Required reviewers** et s'ajouter comme
