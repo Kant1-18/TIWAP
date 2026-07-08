@@ -57,10 +57,19 @@ sudo mkdir -p /data/coolify/{source,ssh,applications,databases,services,backups}
 sudo docker network create coolify
 cp coolify/.env.example /data/coolify/source/.env
 # éditer /data/coolify/source/.env et remplacer toutes les valeurs CHANGE_ME_*
-docker compose -f coolify/docker-compose.yml up -d
+# les conteneurs tournent en www-data (uid/gid 9999) : sans ce chown, Coolify
+# ne peut pas écrire ses clés SSH générées au premier démarrage.
+sudo chown -R 9999:9999 /data/coolify/{ssh,applications,databases,services,backups}
+# --env-file est indispensable : `env_file:` dans le compose ne fournit les
+# variables qu'aux conteneurs, pas à la substitution ${...} du compose lui-même.
+sudo docker compose --env-file /data/coolify/source/.env -f coolify/docker-compose.yml up -d
 ```
 
 - Dashboard Coolify accessible sur `http://<IP-de-la-machine-Linux>:8000`.
+- Testé et validé sur ce projet avec une machine OrbStack Ubuntu
+  (`orb create ubuntu coolify`) : OrbStack donne une IP LAN directement
+  routable depuis le Mac (`orb list` pour la retrouver), pas besoin de port
+  forwarding supplémentaire.
 - Créer trois applications (Docker Image) pointant sur
   `ghcr.io/kant1-18/tiwap` : `tiwap-dev`, `tiwap-staging`, `tiwap-prod`.
 - Pour chacune, récupérer :

@@ -8,6 +8,7 @@
 services:
   coolify:
     image: "${REGISTRY_URL:-ghcr.io}/coollabsio/coolify:${LATEST_IMAGE:-latest}"
+    container_name: coolify
     volumes:
       - type: bind
         source: /data/coolify/source/.env
@@ -51,6 +52,7 @@ services:
 
   postgres:
     image: postgres:15-alpine
+    container_name: coolify-db
     volumes:
       - coolify-db:/var/lib/postgresql/data
     environment:
@@ -68,6 +70,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: coolify-redis
     command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
     environment:
       REDIS_PASSWORD: "${REDIS_PASSWORD}"
@@ -84,6 +87,7 @@ services:
 
   soketi:
     image: "${REGISTRY_URL:-ghcr.io}/coollabsio/coolify-realtime:1.0.16"
+    container_name: coolify-realtime
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
