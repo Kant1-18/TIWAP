@@ -80,7 +80,7 @@ jobs:
                      "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.short_sha }}"
 
       - name: Trivy scan (rapport non bloquant)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
           format: sarif
@@ -89,7 +89,7 @@ jobs:
           severity: "CRITICAL,HIGH,MEDIUM"
 
       - name: Trivy scan (résumé lisible)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
           format: table
