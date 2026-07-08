@@ -136,3 +136,11 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# CI/CD local artifacts
+trivy-results.sarif
+trivy-results.txt
+.scannerwork/
+
+# Secrets locaux (ne jamais committer)
+coolify/.env
