@@ -35,17 +35,32 @@ docker compose -f sonarqube/docker-compose.sonarqube.yml up -d
 
 ## 3. Coolify
 
-L'installeur officiel de Coolify cible Linux ; sur macOS on le fait tourner
-dans une VM Ubuntu locale via [Multipass](https://multipass.run/) :
+Le control plane de Coolify (dashboard + API) est lui-même une stack
+`docker-compose` standard — reprise telle quelle depuis le dépôt officiel
+dans [`coolify/docker-compose.yml`](../coolify/docker-compose.yml). Coolify
+ne supporte officiellement que les hôtes **Linux** : le conteneur `coolify`
+gère chaque serveur (y compris « localhost ») **par SSH**, pas par le socket
+Docker, et son script d'installation refuse explicitement macOS.
+
+Sur ce projet, la stack tourne donc dans une machine Linux locale plutôt que
+directement sur macOS — au choix :
+
+- **OrbStack Machines** (`orb create ubuntu coolify`) si OrbStack est déjà
+  installé ;
+- ou une VM [Multipass](https://multipass.run/) (`multipass launch --name
+  coolify --cpus 2 --memory 4G --disk 20G 22.04`).
+
+Dans cette machine Linux :
 
 ```bash
-brew install --cask multipass
-multipass launch --name coolify --cpus 2 --memory 4G --disk 20G 22.04
-multipass exec coolify -- bash -c "curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash"
-multipass info coolify   # récupérer l'IP de la VM
+sudo mkdir -p /data/coolify/{source,ssh,applications,databases,services,backups}
+sudo docker network create coolify
+cp coolify/.env.example /data/coolify/source/.env
+# éditer /data/coolify/source/.env et remplacer toutes les valeurs CHANGE_ME_*
+docker compose -f coolify/docker-compose.yml up -d
 ```
 
-- Dashboard Coolify accessible sur `http://<IP-VM>:8000`.
+- Dashboard Coolify accessible sur `http://<IP-de-la-machine-Linux>:8000`.
 - Créer trois applications (Docker Image) pointant sur
   `ghcr.io/kant1-18/tiwap` : `tiwap-dev`, `tiwap-staging`, `tiwap-prod`.
 - Pour chacune, récupérer :

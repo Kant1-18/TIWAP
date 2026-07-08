@@ -33,7 +33,7 @@ flowchart TD
     CI -->|build + push| GHCR[(GitHub Container Registry<br/>ghcr.io/kant1-18/tiwap)]
 
     GHCR -->|image versionnée| CD
-    CD -->|API / webhook| Coolify[Coolify<br/>VM locale Multipass]
+    CD -->|API / webhook| Coolify[Coolify<br/>VM Linux locale]
 
     subgraph Environnements
         direction LR
@@ -59,7 +59,7 @@ flowchart TD
 | SonarQube (conteneurisé) | Analyse statique de la qualité du code | Docker local, sur le Mac de développement |
 | Trivy | Scan de vulnérabilités de l'image Docker | Job GitHub Actions (aucune dépendance réseau locale) |
 | GitHub Container Registry (GHCR) | Stockage et versionnage des images Docker | Cloud (GitHub) |
-| Coolify | Plateforme de déploiement PaaS auto-hébergée | VM Ubuntu locale (Multipass), pilotée via API/webhook |
+| Coolify | Plateforme de déploiement PaaS auto-hébergée | VM Linux locale (OrbStack Machine ou Multipass), pilotée via API/webhook |
 
 ## Pourquoi un runner self-hosted ?
 

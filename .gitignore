@@ -141,3 +141,6 @@ cython_debug/
 trivy-results.sarif
 trivy-results.txt
 .scannerwork/
+
+# Secrets locaux (ne jamais committer)
+coolify/.env
