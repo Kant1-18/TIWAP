@@ -57,6 +57,7 @@ jobs:
       contents: read
       packages: write
       security-events: write
+      actions: read
     outputs:
       version: ${{ steps.meta.outputs.version }}
       image: ${{ steps.meta.outputs.image }}
@@ -106,7 +107,7 @@ jobs:
 
       - name: Upload résultats Trivy (onglet Security)
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
 
