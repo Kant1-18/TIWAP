@@ -29,7 +29,9 @@ docker compose -f sonarqube/docker-compose.sonarqube.yml up -d
 - UI disponible sur http://localhost:9000 (identifiants par défaut
   `admin`/`admin`, changement de mot de passe imposé au premier login).
 - Créer un projet nommé `tiwap` (clé `tiwap`, cohérente avec
-  `sonarqube/sonar-project.properties`).
+  [`sonar-project.properties`](../sonar-project.properties) à la racine du
+  dépôt — le scanner le cherche dans `sonar.projectBaseDir`, donc il doit
+  rester à la racine, pas dans `sonarqube/`).
 - Générer un token (**My Account → Security → Generate Token**) et l'enregistrer
   comme secret GitHub `SONAR_TOKEN` (voir section 4).
 
