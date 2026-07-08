@@ -77,6 +77,14 @@ Currently, we have 22 vulnerabilities in the lab. All listed below:
 Each vulnerability is having 3 difficulty levels, namely Low, Medium and Hard. 
 These levels can be set from the settings page.
 
+## CI/CD
+
+This fork adds a full CI/CD chain on top of the original project (GitHub
+Actions, SonarQube, Trivy, GitHub Container Registry, Coolify). See
+[`docs/architecture.md`](docs/architecture.md),
+[`docs/pipeline.md`](docs/pipeline.md),
+[`docs/git-strategy.md`](docs/git-strategy.md) and
+[`docs/infrastructure-setup.md`](docs/infrastructure-setup.md).
 
 ## Bugs and Issues
 

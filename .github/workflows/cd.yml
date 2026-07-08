@@ -1,0 +1,74 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+# Une même image (Build Once, Deploy Many) est promue DEV -> STAGING -> PROD.
+# Chaque étape en échec arrête la promotion vers l'environnement suivant.
+jobs:
+  deploy-dev:
+    name: Déploiement DEV
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted]
+    environment: development
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+      - name: Déclencher le déploiement Coolify (tiwap-dev)
+        run: |
+          curl -sf -X GET "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_DEV_APP_UUID }}&tag=${{ steps.version.outputs.version }}" \
+               -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}"
+
+  smoke-test-dev:
+    name: Smoke tests DEV
+    needs: deploy-dev
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/smoke_test.sh "${{ secrets.DEV_URL }}"
+
+  deploy-staging:
+    name: Déploiement STAGING
+    needs: smoke-test-dev
+    runs-on: [self-hosted]
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Déclencher le déploiement Coolify (tiwap-staging)
+        run: |
+          curl -sf -X GET "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_STAGING_APP_UUID }}&tag=${{ needs.deploy-dev.outputs.version }}" \
+               -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}"
+
+  integration-test-staging:
+    name: Tests d'intégration STAGING
+    needs: deploy-staging
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/smoke_test.sh "${{ secrets.STAGING_URL }}"
+
+  deploy-prod:
+    name: Déploiement PROD (validation manuelle)
+    needs: [integration-test-staging, deploy-dev]
+    runs-on: [self-hosted]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Déclencher le déploiement Coolify (tiwap-prod)
+        run: |
+          curl -sf -X GET "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_PROD_APP_UUID }}&tag=${{ needs.deploy-dev.outputs.version }}" \
+               -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}"
+
+  verify-prod:
+    name: Vérification PROD
+    needs: deploy-prod
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/smoke_test.sh "${{ secrets.PROD_URL }}"

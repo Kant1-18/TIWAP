@@ -1,0 +1,22 @@
+[flake8]
+max-line-length = 140
+exclude =
+    .git,
+    __pycache__,
+    .idea,
+    Static,
+    templates,
+    uploads,
+    backups,
+    certificate,
+    secret,
+    venv,
+    .venv
+
+# Pre-existing style debt in the legacy application code is left untouched
+# on purpose (see docs/pipeline.md) rather than reformatted; only these
+# specific codes are relaxed for that legacy code, new code stays fully linted.
+per-file-ignores =
+    app.py:W291,W293,E302,E303,E721,E231
+    helper/*.py:W291,W293,E302,E303,E721,E231
+    vulnerabilities/*.py:W291,W293,E302,E303,E721,E231,F824,F841
