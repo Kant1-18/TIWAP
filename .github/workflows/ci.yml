@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Toute étape en échec arrête la pipeline (chaînage via `needs:`), sauf le
+# scan Trivy qui reste volontairement non bloquant (voir docs/pipeline.md).
+jobs:
+  lint:
+    name: Lint (flake8)
+    runs-on: ubuntu-latest
+    container: python:3.6
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet flake8
+      - run: flake8 app.py helper vulnerabilities tests
+
+  unit-tests:
+    name: Tests unitaires (pytest)
+    needs: lint
+    runs-on: ubuntu-latest
+    container: python:3.6
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet -r requirements.txt pytest
+      - run: pytest tests/ -v
+
+  sonarqube:
+    name: Analyse SonarQube
+    needs: unit-tests
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v4
+        env:
+          SONAR_HOST_URL: http://localhost:9000
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+      - name: SonarQube Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  build-scan-push:
+    name: Build image, scan Trivy, publication GHCR
+    needs: sonarqube
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+      actions: read
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image metadata
+        id: meta
+        run: |
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          VERSION="$(cat VERSION)"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image (Build Once, Deploy Many)
+        run: |
+          docker build -t "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}" .
+          docker tag "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}" \
+                     "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.short_sha }}"
+
+      - name: Trivy scan (rapport non bloquant)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: "0"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+      - name: Trivy scan (résumé lisible)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
+          format: table
+          exit-code: "0"
+          output: trivy-results.txt
+
+      - name: Publier le résumé Trivy dans le job
+        if: always()
+        run: |
+          echo "## Rapport Trivy - ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat trivy-results.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload résultats Trivy (onglet Security)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Connexion à GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publication de l'image (Étape 4)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker tag "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}" \
+                     "${{ steps.meta.outputs.image }}:latest"
+          docker push "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
+          docker push "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.short_sha }}"
+          docker push "${{ steps.meta.outputs.image }}:latest"
